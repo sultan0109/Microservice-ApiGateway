@@ -1,0 +1,44 @@
+server:
+  port: 9191
+
+spring:
+  application:
+    name: API-GATEWAY
+  cloud:
+    gateway:
+      routes:
+        - id: USER-SERVICE             # bu Service nomi
+          uri: lb://USER-SERVICE       # LoadBalanser User-service ni controller qilish uchun
+          predicates:                  # ApiGetAway ga zapros kegan vaqtda portdan kegin shu pathlaga qarab perenapravit qiladi
+            - Path=/users/**
+          filters:                     # filterga agar serverga request keganda dolga zaderjka bosa va  timeoutInMilliseconds: 4000 shu timedan oshib ketsa   fallbackuri: forward:/userServiceFallBack shunga tashidi
+            - name: CircuitBreaker
+              args:
+                name: USER-SERVICE
+                fallbackuri: forward:/userServiceFallBack
+        - id: DEPARTMENT-SERVICE
+          uri: lb://DEPARTMENT-SERVICE
+          predicates:
+            - Path=/departments/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: DEPARTMENT-SERVICE
+                fallbackuri: forward:/departmentServiceFallBack
+
+
+hystrix:
+  command:
+    fallbackcmd:
+      execution:
+        isolation:
+          thread:
+            timeoutInMilliseconds: 4000  # = 4 sek
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: hystrix.stream  # so we can user this config for use hystrix dashboard
+
